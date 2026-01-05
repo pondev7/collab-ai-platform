@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar";
 
 type Message = {
@@ -151,6 +151,14 @@ export default function ChatPage() {
     activeContext === "personal"
       ? "Ask in this thread..."
       : `Ask in ${spaces.find((space) => space.id === activeContext)?.name ?? "space"}...`;
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    if (!inputRef.current) return;
+    const textarea = inputRef.current;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 192)}px`;
+  }, [activeInput]);
 
   const sendMessage = () => {
     if (!activeInput.trim()) return;
@@ -225,15 +233,16 @@ export default function ChatPage() {
                   : "mr-auto bg-gray-800"
               }`}
             >
-              {msg.content}
+              <span className="whitespace-pre-wrap">{msg.content}</span>
             </div>
           ))}
         </main>
 
         {/* Input */}
         <footer className="border-t border-gray-800 p-4">
-          <div className="flex gap-2">
-            <input
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
               value={activeInput}
               onChange={(e) =>
                 setInputByContext((prev) => ({
@@ -241,14 +250,20 @@ export default function ChatPage() {
                   [activeInputKey]: e.target.value,
                 }))
               }
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
               placeholder={inputPlaceholder}
-              className="flex-1 rounded-md bg-gray-900 px-3 py-2 outline-none"
+              rows={1}
+              className="flex-1 resize-none rounded-md bg-gray-900 px-3 py-2 outline-none"
             />
             <button
               onClick={sendMessage}
               disabled={!activeInput.trim()}
-              className="rounded-md bg-blue-600 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="self-end rounded-md bg-blue-600 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>
