@@ -74,6 +74,68 @@ export default function ChatPage() {
     "space-2": "",
   });
 
+  const handleNewThread = () => {
+    const newThreadId = `thread-${Date.now()}`;
+    const newThread: Thread = {
+      id: newThreadId,
+      title: "New chat",
+      messages: [],
+    };
+
+    setThreads((prev) => [newThread, ...prev]);
+    setActiveContext("personal");
+    setActiveThreadId(newThreadId);
+    setInputByContext((prev) => ({
+      ...prev,
+      [`personal:${newThreadId}`]: "",
+    }));
+  };
+
+  const handleRenameThread = (threadId: string, title: string) => {
+    setThreads((prev) =>
+      prev.map((thread) =>
+        thread.id === threadId ? { ...thread, title } : thread
+      )
+    );
+  };
+
+  const handleDeleteThread = (threadId: string) => {
+    setThreads((prev) => {
+      const remainingThreads = prev.filter((thread) => thread.id !== threadId);
+      const nextActive =
+        activeThreadId === threadId ? remainingThreads[0] : null;
+
+      if (nextActive) {
+        setActiveContext("personal");
+        setActiveThreadId(nextActive.id);
+        return remainingThreads;
+      }
+
+      if (remainingThreads.length > 0) {
+        return remainingThreads;
+      }
+
+      const fallbackId = `thread-${Date.now()}`;
+      const fallbackThread: Thread = {
+        id: fallbackId,
+        title: "New chat",
+        messages: [],
+      };
+      setActiveContext("personal");
+      setActiveThreadId(fallbackId);
+      setInputByContext((inputs) => ({
+        ...inputs,
+        [`personal:${fallbackId}`]: "",
+      }));
+      return [fallbackThread];
+    });
+
+    setInputByContext((prev) => {
+      const { [`personal:${threadId}`]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
   const activeThread =
     threads.find((thread) => thread.id === activeThreadId) ?? threads[0];
   const activeMessages =
@@ -85,6 +147,10 @@ export default function ChatPage() {
       ? `personal:${activeThread?.id ?? "thread-1"}`
       : activeContext;
   const activeInput = inputByContext[activeInputKey] ?? "";
+  const inputPlaceholder =
+    activeContext === "personal"
+      ? "Ask in this thread..."
+      : `Ask in ${spaces.find((space) => space.id === activeContext)?.name ?? "space"}...`;
 
   const sendMessage = () => {
     if (!activeInput.trim()) return;
@@ -135,6 +201,9 @@ export default function ChatPage() {
         activeThreadId={activeThreadId}
         onSelect={setActiveContext}
         onSelectThread={setActiveThreadId}
+        onNewThread={handleNewThread}
+        onRenameThread={handleRenameThread}
+        onDeleteThread={handleDeleteThread}
       />
 
       <div className="flex flex-col flex-1">
@@ -173,12 +242,13 @@ export default function ChatPage() {
                 }))
               }
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Ask something..."
+              placeholder={inputPlaceholder}
               className="flex-1 rounded-md bg-gray-900 px-3 py-2 outline-none"
             />
             <button
               onClick={sendMessage}
-              className="rounded-md bg-blue-600 px-4 py-2"
+              disabled={!activeInput.trim()}
+              className="rounded-md bg-blue-600 px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>
