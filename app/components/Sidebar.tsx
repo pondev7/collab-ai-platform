@@ -37,10 +37,12 @@ export default function Sidebar({
 }: SidebarProps) {
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
+  const [openMenuThreadId, setOpenMenuThreadId] = useState<string | null>(null);
 
   const startEditingThread = (thread: Thread) => {
     setEditingThreadId(thread.id);
     setDraftTitle(thread.title);
+    setOpenMenuThreadId(null);
   };
 
   const commitEditingThread = () => {
@@ -94,11 +96,11 @@ export default function Sidebar({
             onClick={() => {
               onSelect("personal");
               onSelectThread(thread.id);
+              setOpenMenuThreadId(null);
             }}
-            onDoubleClick={() => startEditingThread(thread)}
-            className={`group flex cursor-pointer items-center rounded-md px-3 py-2 mb-1 text-sm ${
+            className={`group relative flex cursor-pointer items-center rounded-md px-3 py-2 mb-1 text-sm ${
               activeContext === "personal" && activeThreadId === thread.id
-                ? "bg-gray-800"
+                ? "bg-gray-800 border-l-2 border-blue-500"
                 : "hover:bg-gray-800"
             }`}
           >
@@ -124,18 +126,47 @@ export default function Sidebar({
                 thread.title
               )}
             </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                if (window.confirm("Delete this thread?")) {
-                  onDeleteThread(thread.id);
-                }
-              }}
-              className="ml-2 rounded px-2 py-1 text-xs text-gray-400 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
-            >
-              Delete
-            </button>
+            {editingThreadId !== thread.id && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenMenuThreadId((prev) =>
+                    prev === thread.id ? null : thread.id
+                  );
+                }}
+                className="ml-2 rounded px-2 py-1 text-xs text-gray-400 opacity-0 transition hover:text-gray-200 group-hover:opacity-100"
+              >
+                ...
+              </button>
+            )}
+            {openMenuThreadId === thread.id && editingThreadId !== thread.id && (
+              <div className="absolute right-3 top-9 z-10 w-28 rounded-md border border-gray-800 bg-gray-900 py-1 text-xs shadow-lg">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startEditingThread(thread);
+                  }}
+                  className="block w-full px-3 py-2 text-left text-gray-200 hover:bg-gray-800"
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (window.confirm("Delete this thread?")) {
+                      onDeleteThread(thread.id);
+                      setOpenMenuThreadId(null);
+                    }
+                  }}
+                  className="block w-full px-3 py-2 text-left text-red-300 hover:bg-gray-800"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
